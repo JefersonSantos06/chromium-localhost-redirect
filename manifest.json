@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "127.0.0.1 to localhost",
+  "version": "1.4.0",
+  "description": "Redireciona 127.0.0.1 para localhost, preservando a porta, e configura os campos de resumo do Logs Explorer nos projetos t3w-logs e t3w-rocket.",
+  "permissions": [
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "https://127.0.0.1/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://console.cloud.google.com/*"
+      ],
+      "js": [
+        "logs-summary-fields.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "redirect_rules",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  }
+}

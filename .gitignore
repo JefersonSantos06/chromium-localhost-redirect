@@ -1,0 +1,6 @@
+# Gerado pelo Chrome ao carregar a extensão descompactada
+_metadata/
+# Pacote gerado pelo workflow de release
+dist/
+# Configuração local do WebStorm
+.idea/

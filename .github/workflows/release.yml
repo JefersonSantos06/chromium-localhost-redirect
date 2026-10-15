@@ -1,0 +1,67 @@
+name: Release
+
+# Empacota a extensão e publica no Cloudflare R2.
+# Dispara ao enviar uma tag vX.Y.Z (igual à "version" do manifest.json) ou manualmente.
+#
+# Configuração em Settings > Secrets and variables > Actions:
+#   secrets:   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+#   variables: R2_BUCKET
+#
+# Objetos publicados no bucket:
+#   chromium-localhost-redirect/chromium-localhost-redirect-<versão>.zip
+#   chromium-localhost-redirect/latest.zip
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  NAME: chromium-localhost-redirect
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Ler versão do manifest
+        id: version
+        run: |
+          version=$(jq -r .version manifest.json)
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "v$version" ]]; then
+            echo "::error::A tag $GITHUB_REF_NAME não bate com a versão $version do manifest.json"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Empacotar
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist
+          # Arquivos referenciados pelo manifest, para o pacote não esquecer nenhum.
+          jq -r '"manifest.json", .declarative_net_request.rule_resources[].path, .content_scripts[].js[]' manifest.json \
+            | xargs zip -j "dist/$NAME-$VERSION.zip"
+          unzip -l "dist/$NAME-$VERSION.zip"
+
+      - name: Publicar no R2
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+        run: |
+          zip_file="dist/$NAME-$VERSION.zip"
+          aws s3 cp "$zip_file" "s3://$R2_BUCKET/$NAME/$NAME-$VERSION.zip" --endpoint-url "$R2_ENDPOINT"
+          aws s3 cp "$zip_file" "s3://$R2_BUCKET/$NAME/latest.zip" --endpoint-url "$R2_ENDPOINT"
+          echo "Publicado $NAME-$VERSION.zip em $R2_BUCKET/$NAME/" >> "$GITHUB_STEP_SUMMARY"
