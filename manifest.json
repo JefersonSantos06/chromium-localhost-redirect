@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "127.0.0.1 to localhost",
-  "version": "1.4.0",
+  "version": "0.0.1",
   "description": "Redireciona 127.0.0.1 para localhost, preservando a porta, e configura os campos de resumo do Logs Explorer nos projetos t3w-logs e t3w-rocket.",
   "permissions": [
     "declarativeNetRequest"

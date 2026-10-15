@@ -3,13 +3,12 @@ name: Release
 # Empacota a extensão e publica no Cloudflare R2.
 # Dispara ao enviar uma tag vX.Y.Z (igual à "version" do manifest.json) ou manualmente.
 #
-# Configuração em Settings > Secrets and variables > Actions:
-#   secrets:   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
-#   variables: R2_BUCKET
+# Secrets em Settings > Secrets and variables > Actions:
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
 #
-# Objetos publicados no bucket:
-#   chromium-localhost-redirect/chromium-localhost-redirect-<versão>.zip
-#   chromium-localhost-redirect/latest.zip
+# Objetos publicados no bucket dev:
+#   chromium/chromium-localhost-redirect-<versão>.zip
+#   chromium/chromium-localhost-redirect-latest.zip
 
 on:
   push:
@@ -25,6 +24,8 @@ concurrency:
 
 env:
   NAME: chromium-localhost-redirect
+  R2_BUCKET: dev
+  R2_PREFIX: chromium
 
 jobs:
   release:
@@ -59,9 +60,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
           R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
-          R2_BUCKET: ${{ vars.R2_BUCKET }}
         run: |
           zip_file="dist/$NAME-$VERSION.zip"
-          aws s3 cp "$zip_file" "s3://$R2_BUCKET/$NAME/$NAME-$VERSION.zip" --endpoint-url "$R2_ENDPOINT"
-          aws s3 cp "$zip_file" "s3://$R2_BUCKET/$NAME/latest.zip" --endpoint-url "$R2_ENDPOINT"
-          echo "Publicado $NAME-$VERSION.zip em $R2_BUCKET/$NAME/" >> "$GITHUB_STEP_SUMMARY"
+          aws s3 cp "$zip_file" "s3://$R2_BUCKET/$R2_PREFIX/$NAME-$VERSION.zip" --endpoint-url "$R2_ENDPOINT"
+          aws s3 cp "$zip_file" "s3://$R2_BUCKET/$R2_PREFIX/$NAME-latest.zip" --endpoint-url "$R2_ENDPOINT"
+          echo "Publicado $NAME-$VERSION.zip em $R2_BUCKET/$R2_PREFIX/" >> "$GITHUB_STEP_SUMMARY"
